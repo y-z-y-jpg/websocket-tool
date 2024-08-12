@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket 客户端</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #status {
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #status.disconnected {
+            color: white;
+            background-color: red;
+        }
+        #status.connected {
+            color: white;
+            background-color: green;
+        }
+        #status.connecting {
+            color: white;
+            background-color: orange;
+        }
+        #messages {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+        .loading {
+            margin-left: 10px;
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 12px;
+            height: 12px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<h1>WebSocket 客户端</h1>
+<div id="status" class="disconnected">状态: 断开连接 <div id="loading" class="loading hidden"></div></div>
+<form id="connectForm">
+    <label for="uri">WebSocket URI:</label>
+    <input type="text" id="uri" value="wss://echo.websocket.org">
+    <button type="button" onclick="connect()">连接</button>
+    <button type="button" onclick="disconnect()">断开连接</button>
+    <button type="button" onclick="clearMessages()">清除消息</button>
+</form>
+<div id="messages"></div>
+<form id="messageForm" class="hidden">
+    <label for="messageInput">消息:</label>
+    <input type="text" id="messageInput" placeholder='输入消息"'>
+    <button type="button" onclick="sendMessage()">发送</button>
+</form>
+
+<script>
+    let websocket;
+    let isConnecting = false;
+
+    function updateStatus(status, statusClass, isLoading = false) {
+        const statusDiv = document.getElementById('status');
+        const loadingDiv = document.getElementById('loading');
+        statusDiv.innerText = '状态: ' + status;
+        statusDiv.className = statusClass;
+        loadingDiv.className = isLoading ? 'loading' : 'loading hidden';
+    }
+
+    function connect() {
+        const uri = document.getElementById('uri').value;
+
+        if (!uri) {
+            alert('请输入 WebSocket URI');
+            return;
+        }
+
+        if (isConnecting || (websocket && (websocket.readyState === WebSocket.OPEN || websocket.readyState === WebSocket.CONNECTING))) {
+            alert('已经连接或正在连接');
+            return;
+        }
+
+        updateStatus('连接中', 'connecting', true);
+        isConnecting = true;
+        websocket = new WebSocket(uri);
+
+        websocket.onopen = function() {
+            isConnecting = false;
+            document.getElementById('messageForm').classList.remove('hidden');
+            updateStatus('已连接', 'connected');
+            document.getElementById('messages').innerHTML += '<p>已连接到 ' + uri + '</p>';
+            scrollMessagesToBottom();
+        };
+
+        websocket.onmessage = function(event) {
+            document.getElementById('messages').innerHTML += '<p>接收: ' + event.data + '</p>';
+            scrollMessagesToBottom();
+        };
+
+        websocket.onclose = function() {
+            isConnecting = false;
+            updateStatus('已断开', 'disconnected');
+            document.getElementById('messages').innerHTML += '<p>连接已关闭</p>';
+            document.getElementById('messageForm').classList.add('hidden');
+            websocket = null;
+            scrollMessagesToBottom();
+        };
+
+        websocket.onerror = function(error) {
+            isConnecting = false;
+            updateStatus('错误', 'disconnected');
+            document.getElementById('messages').innerHTML += '<p>错误: ' + error.message + ' (检查 WebSocket URI)</p>';
+            websocket = null;
+            scrollMessagesToBottom();
+        };
+    }
+
+    function disconnect() {
+        if (websocket) {
+            websocket.close();
+            document.getElementById('messages').innerHTML += '<p>已断开连接</p>';
+            document.getElementById('messageForm').classList.add('hidden');
+            websocket = null;
+            scrollMessagesToBottom();
+        }
+    }
+
+    function sendMessage() {
+        const messageInput = document.getElementById('messageInput').value;
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            // 创建消息对象并转换为 JSON 字符串
+            const messageJSON = JSON.stringify(messageInput);
+
+            websocket.send(messageJSON); // 发送 JSON 字符串
+            document.getElementById('messages').innerHTML += '<p>发送: ' + messageInput + '</p>';
+            document.getElementById('messageInput').value = ''; // 清空输入框
+            scrollMessagesToBottom(); // 滚动消息到底部
+        } else {
+            alert('WebSocket 连接未打开！');
+        }
+    }
+
+
+
+
+    function clearMessages() {
+        document.getElementById('messages').innerHTML = '';
+    }
+
+    function scrollMessagesToBottom() {
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+</script>
+</body>
+</html>
+
