@@ -89,13 +89,12 @@
     <button type="button" onclick="clearMessages()">清除消息</button>
 </form>
 <div id="container">
-    <div id="messages"></div>
-    <form id="messageForm" class="hidden">
-        <textarea id="messageInput" placeholder='输入消息'></textarea>
+    <form id="messageForm">
+        <textarea id="messageInput" placeholder="输入消息"></textarea>
         <button type="button" onclick="sendMessage()">发送</button>
     </form>
+    <div id="messages"></div>
 </div>
-
 <script>
     let websocket = null;
     let isConnecting = false;
